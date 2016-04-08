@@ -8,10 +8,10 @@
 #include <stdbool.h>
 #include <math.h>
 
-#define DIM 1024
+#define DIM 512
 #define MAX_HEIGHT  10
 
-unsigned table[DIM][DIM];
+int table[DIM][DIM];
 bool finished = false;
 
 // vecteur de pixel renvoyé par compute  
@@ -174,11 +174,17 @@ float *sync_eboule_openmp (unsigned iterations)
 
 float *sync_eboule_openmp2 (unsigned iterations)
 {
-  
-    int temp[DIM][DIM];
-
     finished = true;
+    int temp[DIM][DIM];
+    int init[DIM][DIM];
 
+    #pragma omp parallel for
+    for (int i = 0 ; i < DIM - 1 ; i++) {
+	for (int j = 0 ; j < DIM - 1 ; j++) {
+	    init[i][j] = table[i][j];
+	}
+    }
+    
     for (unsigned k ; k < iterations; k++) {
 	#pragma omp parallel
 	{
@@ -197,14 +203,91 @@ float *sync_eboule_openmp2 (unsigned iterations)
 	    #pragma omp for
 	    for (int i = 1 ; i < DIM - 1 ; i++) {	
 		for (int j = 1 ; j < DIM - 1 ; j++) {
-		    if (table[i][j] != temp[i][j]) {
-			finished = false;
-		    }
 		    table[i][j] = temp[i][j];
 		}
 	    }
 	}
     }
+
+    #pragma omp parallel for
+    for (int i = 1 ; i < DIM - 1 ; i++) {	
+	for (int j = 1 ; j < DIM - 1 ; j++) {
+	    if (table[i][j] != init[i][j]) {
+		finished = false;
+	    }
+	}
+    }
+    
+    return DYNAMIC_COLORING;
+}
+
+float *sync_eboule_pong_openmp (unsigned iterations)
+{
+    finished = true;
+    int init[DIM][DIM];
+    int temp[DIM][DIM];
+
+    for (int i = 0 ; i < DIM - 1 ; i++) {
+	temp[i][0] = temp[0][i] = temp[i][DIM - 1] = temp[DIM - 1][i] = 0;
+    }
+
+    #pragma omp parallel for
+    for (int i = 0 ; i < DIM - 1 ; i++) {
+	for (int j = 0 ; j < DIM - 1 ; j++) {
+	    init[i][j] = table[i][j];
+	}
+    }
+    
+    for (unsigned k ; k < iterations; k++) {
+
+	if (k % 2 == 0) {
+	    #pragma omp parallel for
+	    for (int i = 1 ; i < DIM - 1 ; i++) {	
+		for (int j = 1 ; j < DIM - 1 ; j++) {
+		    int middle = table[i][j] % 4;
+		    int up = table[i-1][j] / 4;
+		    int down = table[i+1][j] /4;
+		    int left = table[i][j-1] / 4;
+		    int right = table[i][j+1] / 4;
+		    temp[i][j] = middle + up + down + left + right;
+		}
+	    }
+	}
+
+	else {
+	    #pragma omp parallel for
+	    for (int i = 1 ; i < DIM - 1 ; i++) {	
+		for (int j = 1 ; j < DIM - 1 ; j++) {
+		    int middle = temp[i][j] % 4;
+		    int up = temp[i-1][j] / 4;
+		    int down = temp[i+1][j] /4;
+		    int left = temp[i][j-1] / 4;
+		    int right = temp[i][j+1] / 4;
+		    table[i][j] = middle + up + down + left + right;
+		}
+	    }
+	}
+        
+    }
+
+    if (iterations % 2 == 1) {
+	#pragma omp parallel for
+	for (int i = 1 ; i < DIM - 1 ; i++) {	
+	    for (int j = 1 ; j < DIM - 1 ; j++) {
+		table[i][j] = temp[i][j];
+	    }
+	}
+    }
+
+    #pragma omp parallel for
+    for (int i = 1 ; i < DIM - 1 ; i++) {	
+	for (int j = 1 ; j < DIM - 1 ; j++) {
+	    if (table[i][j] != init[i][j]) {
+		finished = false;
+	    }
+	}
+    }
+    
     return DYNAMIC_COLORING;
 }
 
@@ -233,7 +316,7 @@ int main (int argc, char **argv)
 {
     sable_init(5);
 
-    run(sync_eboule_openmp2, 1);
+    run(sync_eboule_openmp2, 1000);
 
     if (0) {
 	display_init (argc, argv,
