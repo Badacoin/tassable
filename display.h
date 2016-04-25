@@ -6,6 +6,7 @@
 
 typedef unsigned (*get_func_t) (unsigned x, unsigned y);
 typedef float * (*compute_func_t) (unsigned iterations);
+typedef void (*once_func_t)();
 
 #define STATIC_COLORING    ((float *)NULL)
 #define DYNAMIC_COLORING   ((float *)1)

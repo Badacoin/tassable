@@ -34,6 +34,19 @@ static void sable_init (unsigned height)
     }
 }
 
+typedef struct {
+    int line;
+    int column;
+} square;
+
+static square square_create (int i, int j)
+{
+    square temp;
+    temp.line = i;
+    temp.column = j;
+    return temp;
+}
+
 static void tower_init (int height)
 {
     for (int y = 0; y < DIM; y++) {
@@ -291,6 +304,64 @@ float *sync_eboule_pong_openmp (unsigned iterations)
     return DYNAMIC_COLORING;
 }
 
+void task_eboule ()
+{
+    int counter = 0;
+    square stack[DIM * DIM];
+    int height = 0;
+    bool scheduled[DIM][DIM];
+
+    for (int i = 1 ; i < DIM-1 ; i++)
+	for (int j = 1 ; j < DIM-1 ; j++) {
+	    if (table[i][j] < 4)
+		scheduled[i][j] = false;
+	    else {
+		scheduled[i][j] = true;
+	        stack[height] = square_create(i,j);
+		height++;
+	    }
+	}
+
+    while (height > 0) {
+	height--;
+	counter++;
+	square temp = stack[height];
+	int i = temp.line;
+	int j = temp.column;
+	scheduled[i][j] = false;
+	
+	int mod4 = table[i][j] % 4;      
+	int div4 = table[i][j] / 4;
+	table[i][j] = mod4;
+	table[i-1][j] += div4;   
+	table[i+1][j] += div4;   
+	table[i][j-1] += div4;   
+	table[i][j+1] += div4;
+	if ((i > 1) && (table[i-1][j] >= 4) && !scheduled[i-1][j]) {
+	    scheduled[i-1][j] = true;
+	    stack[height] = square_create(i-1,j);
+	    height++;
+	}
+	if ((i < DIM - 2) && (table[i+1][j] >= 4) && !scheduled[i+1][j]) {
+	    scheduled[i+1][j] = true;
+	    stack[height] = square_create(i+1,j);
+	    height++;
+	}
+	if ((j > 1) && (table[i][j-1] >= 4) && !scheduled[i][j-1]) {
+	    scheduled[i][j-1] = true;
+	    stack[height] = square_create(i,j-1);
+	    height++;
+	}
+	if ((j < DIM - 2) && (table[i][j+1] >= 4) && !scheduled[i][j+1]) {
+	    scheduled[i][j+1] = true;
+	    stack[height] = square_create(i,j+1);
+	    height++;
+	}
+    }
+
+    printf("%d eboulements\n", counter);
+}
+
 void run (compute_func_t compute_func, unsigned iterations)
 {
     int computeTime = 0;
@@ -312,18 +383,31 @@ void run (compute_func_t compute_func, unsigned iterations)
 	   computeTime / (float) (1000 * 1000));
 }
 
+void run_once (once_func_t once_func)
+{
+    int computeTime = 0;
+    unsigned call_counter = 0;
+    struct timeval t1,t2;
+    gettimeofday (&t1,NULL);
+    once_func();
+    gettimeofday (&t2,NULL);
+    computeTime = TIME_DIFF(t1,t2);
+
+    printf("total time : %.3f s\n", computeTime / (float) (1000 * 1000));
+}
+
 int main (int argc, char **argv)
 {
-    sable_init(5);
+    tower_init(100000);
 
-    run(sync_eboule_openmp2, 1000);
+    run_once(task_eboule);
 
     if (0) {
 	display_init (argc, argv,
 		      DIM,              // dimension ( = x = y) du tas
 		      MAX_HEIGHT,       // hauteur maximale du tas
 		      get,              // callback func
-		      sync_eboule_openmp2);         // callback func
+		      sync_eboule);         // callback func
     }
     
     return 0;
