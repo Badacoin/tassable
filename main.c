@@ -28,6 +28,7 @@ unsigned get (unsigned x, unsigned y)
 // Tas de sable initial
 static void sable_init (unsigned height)
 {
+  #pragma omp parallel for
   for (int y = 1; y < DIM - 1 ; y++)
     for (int x = 1; x < DIM -1 ; x++) {
       table[y][x] = height;
@@ -398,16 +399,16 @@ void run_once (once_func_t once_func)
 
 int main (int argc, char **argv)
 {
-    tower_init(100000);
+    sable_init(5);
 
-    run_once(task_eboule);
+    run(sync_eboule_pong_openmp, 1000);
 
     if (0) {
 	display_init (argc, argv,
 		      DIM,              // dimension ( = x = y) du tas
 		      MAX_HEIGHT,       // hauteur maximale du tas
 		      get,              // callback func
-		      sync_eboule);         // callback func
+		      sync_eboule_pong_openmp);         // callback func
     }
     
     return 0;
