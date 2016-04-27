@@ -7,6 +7,48 @@
 
 #define FLAT_HEIGHT 5
 
+int **init;
+int **temp;
+
+bool
+absorb_base (int **table, int dim, int iterations)
+{
+    bool finished = true;
+
+    for (int i = 0 ; i < dim - 1 ; i++) {
+	for (int j = 0 ; j < dim - 1 ; j++) {
+	    init[i][j] = table[i][j];
+	}
+    }
+    
+    for (int k = 0 ; k < iterations; k++) {
+	for (int i = 1 ; i < dim - 1 ; i++) {
+	    for (int j = 1 ; j < dim - 1 ; j++) {
+		int middle = table[i][j] % 4;
+		int left = table[i][j-1] / 4;
+		int right = table[i][j+1] / 4;
+		int up = table[i-1][j] / 4;
+		int down = table[i+1][j] /4;
+		temp[i][j] = middle + up + down + left + right;
+	    }
+	}
+	
+	for (int i = 1 ; i < dim - 1 ; i++) {	
+	    for (int j = 1 ; j < dim - 1 ; j++) {
+		table[i][j] = temp[i][j];
+	    }
+	}
+    }
+
+    for (int i = 1 ; finished && i < dim - 1 ; i++) {	
+	for (int j = 1 ; finished && j < dim - 1 ; j++) {
+	    finished = finished && (table[i][j] == init[i][j]);
+	}
+    }
+    
+    return finished;
+}
+
 int
 main (int argc, char **argv)
 {
@@ -16,7 +58,9 @@ main (int argc, char **argv)
     int tower_height = 0;
     int iterations = 1;
     int optc;
-    compute_func_t func = naive;
+    compute_func_t func = absorb_base;
+    temp = table_alloc(dim);
+    init = table_alloc(dim);
     
     while ((optc = getopt(argc, argv, "N:t:i:gc")) != -1) {
 	switch (optc) {
@@ -71,5 +115,7 @@ main (int argc, char **argv)
     }
 
     table_free(table);
+    table_free(temp);
+    table_free(init);
     return 0;
 }

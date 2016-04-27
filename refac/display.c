@@ -25,7 +25,7 @@
 #define PIX_SURFACE
 
 #ifdef PIX_SURFACE
-unsigned flatten_surface = 0;
+unsigned flatten_surface = 1;
 #endif
 
 GLfloat *s_vbo_vertex;
@@ -38,7 +38,7 @@ GLuint s_indexes = 0;
 GLuint s_vbovid, s_vboidx, s_vbocid, s_texid;
 
 unsigned SAND_DIM = 0;
-unsigned SAND_MAX_HEIGHT = 10;
+unsigned SAND_MAX_HEIGHT = 7;
 
 struct timeval lastDisplayTimeval ;
 
@@ -70,7 +70,7 @@ unsigned rescale = 0;
 
 int mouse_old_x, mouse_old_y;
 int mouse_buttons = 0;
-float rotate_x = 0.0, rotate_y = 0.0;
+float rotate_x = 270.0, rotate_y = 0.0;
 float translate_z = -1.f;
 
 int **table_location;

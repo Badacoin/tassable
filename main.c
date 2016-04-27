@@ -401,7 +401,7 @@ int main (int argc, char **argv)
 {
     sable_init(5);
 
-    run(sync_eboule_pong_openmp, 1000);
+    run(sync_eboule_openmp2, 1);
 
     if (0) {
 	display_init (argc, argv,

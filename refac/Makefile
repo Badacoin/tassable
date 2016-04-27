@@ -1,4 +1,4 @@
-PROG	:= naive
+PROG	:= naive naive_sync absorb_base
 CFLAGS	:= -g -O3 -std=c99 -Wall -Wextra
 LDLIBS	:= -lm -fopenmp -lOpenCL -lGL -lGLU -lglut
 
