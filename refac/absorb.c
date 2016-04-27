@@ -5,44 +5,53 @@
 #include <getopt.h>
 #include <stdlib.h>
 
-#define FLAT_HEIGHT 5
-
+int dim = 512;
+int **table;
+int **dual;
 int **init;
-int **temp;
+int parity = 0;
+
+int
+get (int i, int j)
+{
+    return (parity % 2) ? dual[i][j] : table[i][j];
+}
 
 bool
-absorb_base (int **table, int dim, int iterations)
+absorb (int iterations)
 {
     bool finished = true;
+    int **src, **dst, **temp;
+    src = (parity % 2) ? dual : table;
+    dst = (parity % 2) ? table : dual;
 
     for (int i = 0 ; i < dim - 1 ; i++) {
 	for (int j = 0 ; j < dim - 1 ; j++) {
-	    init[i][j] = table[i][j];
+	    init[i][j] = src[i][j];
 	}
     }
     
     for (int k = 0 ; k < iterations; k++) {
 	for (int i = 1 ; i < dim - 1 ; i++) {
 	    for (int j = 1 ; j < dim - 1 ; j++) {
-		int middle = table[i][j] % 4;
-		int left = table[i][j-1] / 4;
-		int right = table[i][j+1] / 4;
-		int up = table[i-1][j] / 4;
-		int down = table[i+1][j] /4;
-		temp[i][j] = middle + up + down + left + right;
+		int left = src[i][j-1] / 4;
+		int middle = src[i][j] % 4;
+		int right = src[i][j+1] / 4;
+		int up = src[i-1][j] / 4;
+		int down = src[i+1][j] /4;
+		dst[i][j] = left + middle + right + up + down;
 	    }
 	}
 	
-	for (int i = 1 ; i < dim - 1 ; i++) {	
-	    for (int j = 1 ; j < dim - 1 ; j++) {
-		table[i][j] = temp[i][j];
-	    }
-	}
+	temp = dst;
+	dst = src;
+	src = temp;
+	parity++;
     }
 
     for (int i = 1 ; finished && i < dim - 1 ; i++) {	
 	for (int j = 1 ; finished && j < dim - 1 ; j++) {
-	    finished = finished && (table[i][j] == init[i][j]);
+	    finished = finished && (src[i][j] == init[i][j]);
 	}
     }
     
@@ -54,13 +63,10 @@ main (int argc, char **argv)
 {
     bool graphical = false;
     bool check = false;
-    int dim = 512;
     int tower_height = 0;
     int iterations = 1;
     int optc;
-    compute_func_t func = absorb_base;
-    temp = table_alloc(dim);
-    init = table_alloc(dim);
+    compute_func_t func = absorb;
     
     while ((optc = getopt(argc, argv, "N:t:i:gc")) != -1) {
 	switch (optc) {
@@ -82,7 +88,11 @@ main (int argc, char **argv)
 	}
     }
 
-    int **table = table_alloc(dim);
+    table = table_alloc(dim);
+    dual = table_alloc(dim);
+    init = table_alloc(dim);
+    flat_init(dual, 0, dim);
+    
     if (tower_height != 0) {
 	tower_init(table, tower_height, dim);
     }
@@ -91,10 +101,10 @@ main (int argc, char **argv)
     }
 
     if (graphical) {
-	display_init (0, NULL, dim, table, get, func);
+	display_init (0, NULL, dim, get, func);
     }
     else {
-	run(func, table, dim, iterations);
+	run(func, iterations);
     }
 
     if (check) {
@@ -107,15 +117,13 @@ main (int argc, char **argv)
 	    flat_init(control, FLAT_HEIGHT, dim);
 	}
 
-	printf("\nProcessing control table.\n");
-	run(naive, control, dim, iterations);
-	printf("\n");
+	process(control, dim);
 	compare(table, control, dim);
 	table_free(control);
     }
 
     table_free(table);
-    table_free(temp);
+    table_free(dual);
     table_free(init);
     return 0;
 }

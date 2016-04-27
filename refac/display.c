@@ -37,7 +37,7 @@ GLuint s_vertices = 0;
 GLuint s_indexes = 0;
 GLuint s_vbovid, s_vboidx, s_vbocid, s_texid;
 
-unsigned SAND_DIM = 0;
+int SAND_DIM = 0;
 unsigned SAND_MAX_HEIGHT = 7;
 
 struct timeval lastDisplayTimeval ;
@@ -73,7 +73,6 @@ int mouse_buttons = 0;
 float rotate_x = 270.0, rotate_y = 0.0;
 float translate_z = -1.f;
 
-int **table_location;
 get_func_t get_func_ptr;
 compute_func_t compute_func_ptr;
 
@@ -166,7 +165,7 @@ void sand_surface_refresh (int set_color)
   for (int y = 0; y < SAND_DIM; y++)
     for (int x = 0; x < SAND_DIM; x++) {
       GLfloat xv, yv, zv;
-      unsigned val = get_func_ptr (y, x, table_location);
+      unsigned val = get_func_ptr (y, x);
 
       if (val > max_value)
 	max_value = val;
@@ -374,7 +373,7 @@ volatile int displayPeriod = MaxDisplayPeriod ; // 10 fps
 
 volatile int nbIterations = 0;
 int iterations[]={1,2,5,10,25,50,100,250,500,1000,10000};
-#define MaxNbIterations (sizeof(iterations)/sizeof(iterations[0]))
+#define MaxNbIterations (int) (sizeof(iterations)/sizeof(iterations[0]))
 
 
 void printFPS()
@@ -422,30 +421,25 @@ void idle(void)
     {
       struct timeval t1,t2;
       gettimeofday (&t1,NULL);
-      compute_func_ptr(table_location, SAND_DIM,
-				iterations[nbIterations]);
+      compute_func_ptr(iterations[nbIterations]);
       gettimeofday (&t2,NULL);
       computeTime += TIME_DIFF(t1,t2);
       nbFrames++;
 
-#ifdef PIX_SURFACE			/* TODO: CLEAN UP */
+#ifdef PIX_SURFACE
       sand_surface_refresh (1);
 
-      if (1) {
-	// Refresh colors
-	glBindBuffer(GL_ARRAY_BUFFER, s_vbocid);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, s_vertices*3*sizeof(float),
-			s_vbo_color);
-      }
+      // Refresh colors
+      glBindBuffer(GL_ARRAY_BUFFER, s_vbocid);
+      glBufferSubData(GL_ARRAY_BUFFER, 0, s_vertices*3*sizeof(float),
+		      s_vbo_color);
 #else
       sand_surface_refresh (1);
       
-      if (1) {
-	// Refresh colors
-	glBindBuffer(GL_ARRAY_BUFFER, s_vbocid);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, s_vertices*3*sizeof(float),	s_vbo_color);
-	texture = s_vbo_color;
-      }
+      // Refresh colors
+      glBindBuffer(GL_ARRAY_BUFFER, s_vbocid);
+      glBufferSubData(GL_ARRAY_BUFFER, 0, s_vertices*3*sizeof(float),	s_vbo_color);
+      texture = s_vbo_color;
 #endif
       
       // Refresh vertices
@@ -624,14 +618,12 @@ void appMotion(int x, int y)
   glutPostRedisplay();
 }
 
-void display_init (int argc, char **argv, int dim, int **table,
-		   get_func_t get_func,
-		   compute_func_t compute_func)
+void display_init (int argc, char **argv, int dim,
+		   get_func_t get_func, compute_func_t compute_func)
 {
   SAND_DIM = dim;
   get_func_ptr = get_func;
   compute_func_ptr = compute_func;
-  table_location = table;
   
   glutInit(&argc, argv);
 

@@ -5,13 +5,20 @@
 #include <getopt.h>
 #include <stdlib.h>
 
-#define FLAT_HEIGHT 5
+int dim = 512;
+int **table;
+int **temp;
+
+int
+get (int i, int j)
+{
+    return table[i][j];
+}
 
 bool
-naive_sync (int **table, int dim, int iterations)
+naive_sync (int iterations)
 {
     bool finished = true;
-    int **temp = table_alloc(dim);
 
     for (int k = 0 ; k < iterations ; k++) {
 	
@@ -43,7 +50,6 @@ naive_sync (int **table, int dim, int iterations)
 	}
     }
 
-    table_free(temp);
     return finished;
 }
 
@@ -52,7 +58,6 @@ main (int argc, char **argv)
 {
     bool graphical = false;
     bool check = false;
-    int dim = 512;
     int tower_height = 0;
     int iterations = 1;
     int optc;
@@ -78,7 +83,9 @@ main (int argc, char **argv)
 	}
     }
 
-    int **table = table_alloc(dim);
+    table = table_alloc(dim);
+    temp = table_alloc(dim);
+    
     if (tower_height != 0) {
 	tower_init(table, tower_height, dim);
     }
@@ -87,10 +94,10 @@ main (int argc, char **argv)
     }
 
     if (graphical) {
-	display_init (0, NULL, dim, table, get, func);
+	display_init (0, NULL, dim, get, func);
     }
     else {
-	run(func, table, dim, iterations);
+	run(func, iterations);
     }
 
     if (check) {
@@ -103,13 +110,12 @@ main (int argc, char **argv)
 	    flat_init(control, FLAT_HEIGHT, dim);
 	}
 
-	printf("\nProcessing control table.\n");
-	run(naive, control, dim, iterations);
-	printf("\n");
+	process(control, dim);
 	compare(table, control, dim);
 	table_free(control);
     }
 
     table_free(table);
+    table_free(temp);
     return 0;
 }

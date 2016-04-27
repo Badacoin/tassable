@@ -5,14 +5,44 @@
 #include <getopt.h>
 #include <stdlib.h>
 
-#define FLAT_HEIGHT 5
+int dim = 512;
+int **table;
+
+int
+get (int i, int j)
+{
+    return table[i][j];
+}
+
+bool
+naive (int iterations)
+{
+    bool finished = true;
+    
+    for (int k = 0 ; k < iterations ; k++) {
+	for (int i = 1 ; i < dim - 1 ; i++) {	
+	    for (int j= 1 ; j < dim - 1 ; j++) {
+		if (table[i][j] >= 4) {
+		    finished = false;
+		    int mod4 = table[i][j] % 4;      
+		    int div4 = table[i][j] / 4;
+		    table[i][j] = mod4;   
+		    table[i-1][j] += div4;   
+		    table[i+1][j] += div4;   
+		    table[i][j-1] += div4;   
+		    table[i][j+1] += div4;   
+		}
+	    }
+	}
+    }
+    return finished;
+}
 
 int
 main (int argc, char **argv)
 {
     bool graphical = false;
     bool check = false;
-    int dim = 512;
     int tower_height = 0;
     int iterations = 1;
     int optc;
@@ -38,7 +68,8 @@ main (int argc, char **argv)
 	}
     }
 
-    int **table = table_alloc(dim);
+    table = table_alloc(dim);
+    
     if (tower_height != 0) {
 	tower_init(table, tower_height, dim);
     }
@@ -47,10 +78,10 @@ main (int argc, char **argv)
     }
 
     if (graphical) {
-	display_init (0, NULL, dim, table, get, func);
+	display_init (0, NULL, dim, get, func);
     }
     else {
-	run(func, table, dim, iterations);
+	run(func, iterations);
     }
 
     if (check) {
@@ -63,9 +94,7 @@ main (int argc, char **argv)
 	    flat_init(control, FLAT_HEIGHT, dim);
 	}
 
-	printf("\nProcessing control table.\n");
-	run(naive, control, dim, iterations);
-	printf("\n");
+	process(control, dim);
 	compare(table, control, dim);
 	table_free(control);
     }

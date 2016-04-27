@@ -2,12 +2,6 @@
 
 #include <stdlib.h>
 
-int
-get (int i, int j, int **table)
-{
-    return table[j][i];		/* TODO: ??? */
-}
-
 void
 flat_init (int **table, int height, int dim)
 {
@@ -71,8 +65,7 @@ table_free (int **table)
 }
 
 void
-run (compute_func_t compute_func, int **table,
-     int dim, unsigned iterations)
+run (compute_func_t compute_func, unsigned iterations)
 {
     bool finished = false;
     int computeTime = 0;
@@ -80,7 +73,7 @@ run (compute_func_t compute_func, int **table,
     while (!finished) {
 	struct timeval t1,t2;
 	gettimeofday (&t1,NULL);
-	finished = compute_func(table, dim, iterations);
+	finished = compute_func(iterations);
 	gettimeofday (&t2,NULL);
 	computeTime += TIME_DIFF(t1,t2);
 	call_counter++;
@@ -93,28 +86,28 @@ run (compute_func_t compute_func, int **table,
 	   computeTime / (float) (1000 * 1000));
 }
 
-bool
-naive (int **table, int dim, int iterations)
+void
+process (int **control, int dim)
 {
-    bool finished = true;
-    
-    for (int k = 0 ; k < iterations ; k++) {
+    bool finished = false;
+
+    while (!finished) {
+	finished = true;
 	for (int i = 1 ; i < dim - 1 ; i++) {	
 	    for (int j= 1 ; j < dim - 1 ; j++) {
-		if (table[i][j] >= 4) {
+		if (control[i][j] >= 4) {
 		    finished = false;
-		    int mod4 = table[i][j] % 4;      
-		    int div4 = table[i][j] / 4;
-		    table[i][j] = mod4;   
-		    table[i-1][j] += div4;   
-		    table[i+1][j] += div4;   
-		    table[i][j-1] += div4;   
-		    table[i][j+1] += div4;   
+		    int mod4 = control[i][j] % 4;      
+		    int div4 = control[i][j] / 4;
+		    control[i][j] = mod4;   
+		    control[i-1][j] += div4;   
+		    control[i+1][j] += div4;   
+		    control[i][j-1] += div4;   
+		    control[i][j+1] += div4;   
 		}
 	    }
 	}
     }
-    return finished;
 }
 
 void
