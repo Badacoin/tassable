@@ -3,16 +3,10 @@
 
 #include "display.h"
 
-#ifdef __APPLE__
-#include <OpenGL/gl.h>          // Header File For The OpenGL32 Library
-#include <OpenGL/glu.h>         // Header File For The GLu32 Library
-#include <GLUT/glut.h>          // Header File For The GLut Library
-#else
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>          // Header File For The OpenGL32 Library
 #include <GL/glu.h>         // Header File For The GLu32 Library
 #include <GL/glut.h>          // Header File For The GLut Library
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -372,7 +366,7 @@ int periods[]={2000000,1000000,500000,250000,100000,50000,10000};
 volatile int displayPeriod = MaxDisplayPeriod ; // 10 fps
 
 volatile int nbIterations = 0;
-int iterations[]={1,2,5,10,25,50,100,250,500,1000,10000, 100000, 1000000};
+int iterations[]={0,1,2,5,10,25,50,100,250,500,1000,10000, 100000, 1000000};
 #define MaxNbIterations (int) (sizeof(iterations)/sizeof(iterations[0]))
 
 

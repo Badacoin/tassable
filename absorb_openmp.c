@@ -5,8 +5,6 @@
 #include <getopt.h>
 #include <stdlib.h>
 
-#define DIM 512
-
 int **table;
 int **dual;
 int **init;
@@ -65,7 +63,7 @@ int
 main (int argc, char **argv)
 {
     bool graphical = false;
-    bool check = false;
+    bool validation = false;
     int tower_height = 0;
     int iterations = 1;
     int optc;
@@ -83,7 +81,7 @@ main (int argc, char **argv)
 		graphical = true;
 		break;
 	    case 'c' :
-		check = true;
+		validation = true;
 		break;
 	}
     }
@@ -107,7 +105,7 @@ main (int argc, char **argv)
 	run(func, iterations);
     }
 
-    if (check) {
+    if (validation) {
 	int **control = table_alloc(DIM);
 	
 	if (tower_height != 0) {

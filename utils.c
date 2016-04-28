@@ -1,6 +1,17 @@
 #include "utils.h"
 
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+void
+check (cl_int err, char *message)
+{
+    if (err != 0) {
+	printf("%s\n", message);
+	exit(EXIT_FAILURE);
+    }
+}
 
 void
 flat_init (int **table, int height, int dim)
@@ -125,5 +136,66 @@ compare (int **table, int **control, int dim)
     }
     else {
 	printf("There was a mistake.\n");
+    }
+}
+
+size_t
+file_size(const char *filename)
+{
+    struct stat sb;
+
+    if (stat(filename, &sb) < 0) {
+	perror ("stat");
+	abort ();
+    }
+    return sb.st_size;
+}
+
+char *
+file_load(const char *filename)
+{
+    FILE *f;
+    char *b;
+    size_t s;
+    size_t r;
+    
+    s = file_size (filename);
+    b = malloc (s+1);
+    if (!b) {
+	perror ("malloc");
+	exit (1);
+    }
+    f = fopen (filename, "r");
+    if (f == NULL) {
+	perror ("fopen");
+	exit (1);
+    }
+    r = fread (b, s, 1, f);
+    if (r != 1) {
+	perror ("fread");
+	exit (1);
+    }
+    b[s] = '\0';
+    return b;
+}
+void
+compile (cl_program program, cl_device_id device, char *flags)
+{
+    cl_int err;
+    err = clBuildProgram (program, 0, NULL, flags, NULL, NULL);
+    
+    if(err != CL_SUCCESS) {
+	size_t len;
+	clGetProgramBuildInfo(program, device,
+			      CL_PROGRAM_BUILD_LOG, 0, NULL, &len);
+	char buffer[len+1];
+	
+	fprintf(stderr, "--- Compiler log ---\n");
+	clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG,
+			      sizeof(buffer), buffer, NULL);
+	fprintf(stderr, "%s\n", buffer);
+	fprintf(stderr, "--------------------\n");
+	
+	error("Failed to build program!\n");
     }
 }

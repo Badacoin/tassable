@@ -5,7 +5,6 @@
 #include <getopt.h>
 #include <stdlib.h>
 
-int dim = 512;
 int **table;
 bool **scheduled;
 
@@ -33,8 +32,8 @@ get (int i, int j)
 
 void stack_init ()
 {
-    for (int i = 1 ; i < dim - 1 ; i++) {
-	for (int j = 1 ; j < dim - 1 ; j++) {
+    for (int i = 1 ; i < DIM - 1 ; i++) {
+	for (int j = 1 ; j < DIM - 1 ; j++) {
 	    if (table[i][j] < 4)
 		scheduled[i][j] = false;
 	    else {
@@ -68,7 +67,7 @@ bool task_seq (int iterations)
 	    stack[height] = square_create(i-1,j);
 	    height++;
 	}
-	if ((i < dim - 2) && (table[i+1][j] >= 4) && !scheduled[i+1][j]) {
+	if ((i < DIM - 2) && (table[i+1][j] >= 4) && !scheduled[i+1][j]) {
 	    scheduled[i+1][j] = true;
 	    stack[height] = square_create(i+1,j);
 	    height++;
@@ -78,7 +77,7 @@ bool task_seq (int iterations)
 	    stack[height] = square_create(i,j-1);
 	    height++;
 	}
-	if ((j < dim - 2) && (table[i][j+1] >= 4) && !scheduled[i][j+1]) {
+	if ((j < DIM - 2) && (table[i][j+1] >= 4) && !scheduled[i][j+1]) {
 	    scheduled[i][j+1] = true;
 	    stack[height] = square_create(i,j+1);
 	    height++;
@@ -92,17 +91,14 @@ int
 main (int argc, char **argv)
 {
     bool graphical = false;
-    bool check = false;
+    bool validation = false;
     int tower_height = 0;
     int iterations = 1;
     int optc;
     compute_func_t func = task_seq;
     
-    while ((optc = getopt(argc, argv, "N:t:i:gc")) != -1) {
+    while ((optc = getopt(argc, argv, "t:i:gc")) != -1) {
 	switch (optc) {
-	    case 'N' :
-		dim = strtol(optarg, NULL, 10);
-		break;
 	    case 't' :
 	        tower_height = strtol(optarg, NULL, 10);
 	        break;
@@ -113,63 +109,63 @@ main (int argc, char **argv)
 		graphical = true;
 		break;
 	    case 'c' :
-		check = true;
+		validation = true;
 		break;
 	}
     }
 
-    table = table_alloc(dim);
-    stack = malloc(dim * dim * sizeof(square));
+    table = table_alloc(DIM);
+    stack = malloc(DIM * DIM * sizeof(square));
     if (stack == NULL) {
 	fputs("Error: out of memory!\n", stderr);
 	exit(EXIT_FAILURE);
     }
 
-    bool *linear_scheduled = malloc(dim * dim * sizeof(bool));
+    bool *linear_scheduled = malloc(DIM * DIM * sizeof(bool));
     if (linear_scheduled == NULL) {
 	fputs("Error: out of memory!\n", stderr);
 	exit(EXIT_FAILURE);
     }
-    scheduled = malloc(dim * sizeof(bool *));
+    scheduled = malloc(DIM * sizeof(bool *));
     if (scheduled == NULL) {
 	fputs("Error: out of memory!\n", stderr);
 	exit(EXIT_FAILURE);
     }
     int offset = 0;
-    for (int i = 0 ; i < dim ; i++) {
+    for (int i = 0 ; i < DIM ; i++) {
         scheduled[i] = &linear_scheduled[offset];
-	offset += dim;
+	offset += DIM;
     }
 
     
     if (tower_height != 0) {
-	tower_init(table, tower_height, dim);
+	tower_init(table, tower_height, DIM);
     }
     else {
-	flat_init(table, FLAT_HEIGHT, dim);
+	flat_init(table, FLAT_HEIGHT, DIM);
     }
 
     stack_init();
     
     if (graphical) {
-	display_init (0, NULL, dim, get, func);
+	display_init (0, NULL, DIM, get, func);
     }
     else {
 	run(func, iterations);
     }
 
-    if (check) {
-	int **control = table_alloc(dim);
+    if (validation) {
+	int **control = table_alloc(DIM);
 	
 	if (tower_height != 0) {
-	    tower_init(control, tower_height, dim);
+	    tower_init(control, tower_height, DIM);
 	}
 	else {
-	    flat_init(control, FLAT_HEIGHT, dim);
+	    flat_init(control, FLAT_HEIGHT, DIM);
 	}
 
-	process(control, dim);
-	compare(table, control, dim);
+	process(control, DIM);
+	compare(table, control, DIM);
 	table_free(control);
     }
 
