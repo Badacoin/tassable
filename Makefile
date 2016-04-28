@@ -1,27 +1,17 @@
+PROG	:= naive naive_sync absorb task_seq absorb_openmp
+CFLAGS	:= -g -O3 -std=c99 -Wall -Wextra
+LDLIBS	:= -lm -fopenmp -lOpenCL -lGL -lGLU -lglut
 
-ARCH            := $(shell uname -s | tr a-z A-Z)
+all: $(PROG)
 
-PROG	:=	sable
+%: %.c display.o utils.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
-CFLAGS	:=	-g -O3 -std=c99 -Wno-deprecated-declarations -fopenmp
-ifeq ($(ARCH),DARWIN)
-CFLAGS	+=	-I /opt/local/include
-LDFLAGS	+=	-L /opt/local/include
-LDLIBS	+=	-framework GLUT -framework OpenGL -framework OpenCL
-else
-LDLIBS		:= -lm -fopenmp -lOpenCL -lGL -lGLU -lglut
-endif
+display.o: display.c display.h utils.h
 
-.phony: default clean
-
-default: $(PROG)
-
-$(PROG): main.o display.o
-	$(CC) -o $@ $(LDFLAGS) $^ $(LDLIBS)
-
-main.o: display.h
-
-display.o: display.h
+utils.o: utils.c utils.h
 
 clean:
 	rm -rf *.o $(PROG)
+
+.PHONY: default clean

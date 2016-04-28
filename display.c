@@ -25,7 +25,7 @@
 #define PIX_SURFACE
 
 #ifdef PIX_SURFACE
-unsigned flatten_surface = 0;
+unsigned flatten_surface = 1;
 #endif
 
 GLfloat *s_vbo_vertex;
@@ -37,8 +37,8 @@ GLuint s_vertices = 0;
 GLuint s_indexes = 0;
 GLuint s_vbovid, s_vboidx, s_vbocid, s_texid;
 
-unsigned SAND_DIM = 0;
-unsigned SAND_MAX_HEIGHT = 0;
+int SAND_DIM = 0;
+unsigned SAND_MAX_HEIGHT = 7;
 
 struct timeval lastDisplayTimeval ;
 
@@ -70,7 +70,7 @@ unsigned rescale = 0;
 
 int mouse_old_x, mouse_old_y;
 int mouse_buttons = 0;
-float rotate_x = 0.0, rotate_y = 0.0;
+float rotate_x = 270.0, rotate_y = 0.0;
 float translate_z = -1.f;
 
 get_func_t get_func_ptr;
@@ -165,7 +165,7 @@ void sand_surface_refresh (int set_color)
   for (int y = 0; y < SAND_DIM; y++)
     for (int x = 0; x < SAND_DIM; x++) {
       GLfloat xv, yv, zv;
-      unsigned val = get_func_ptr (y, x) ;
+      unsigned val = get_func_ptr (y, x);
 
       if (val > max_value)
 	max_value = val;
@@ -372,8 +372,8 @@ int periods[]={2000000,1000000,500000,250000,100000,50000,10000};
 volatile int displayPeriod = MaxDisplayPeriod ; // 10 fps
 
 volatile int nbIterations = 0;
-int iterations[]={1,2,5,10,25,50,100,250,500,1000,10000};
-#define MaxNbIterations (sizeof(iterations)/sizeof(iterations[0]))
+int iterations[]={1,2,5,10,25,50,100,250,500,1000,10000, 100000, 1000000};
+#define MaxNbIterations (int) (sizeof(iterations)/sizeof(iterations[0]))
 
 
 void printFPS()
@@ -412,7 +412,6 @@ void updateDisplay(int i)
 
 void idle(void)
 {
-  float *colors;
   struct timeval now;
   static int firstCall = 1;
   
@@ -422,34 +421,25 @@ void idle(void)
     {
       struct timeval t1,t2;
       gettimeofday (&t1,NULL);
-      colors = compute_func_ptr (iterations[nbIterations]);
+      compute_func_ptr(iterations[nbIterations]);
       gettimeofday (&t2,NULL);
       computeTime += TIME_DIFF(t1,t2);
       nbFrames++;
 
 #ifdef PIX_SURFACE
-      if (colors && colors != DYNAMIC_COLORING)
-	texture = colors;
+      sand_surface_refresh (1);
 
-      sand_surface_refresh (colors != STATIC_COLORING);
-
-      if (colors) {
-	// Refresh colors
-	glBindBuffer(GL_ARRAY_BUFFER, s_vbocid);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, s_vertices*3*sizeof(float),
-			s_vbo_color);
-      }
+      // Refresh colors
+      glBindBuffer(GL_ARRAY_BUFFER, s_vbocid);
+      glBufferSubData(GL_ARRAY_BUFFER, 0, s_vertices*3*sizeof(float),
+		      s_vbo_color);
 #else
-      sand_surface_refresh (colors == DYNAMIC_COLORING);
+      sand_surface_refresh (1);
       
-      if (colors) {
-	// Refresh colors
-	glBindBuffer(GL_ARRAY_BUFFER, s_vbocid);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, s_vertices*3*sizeof(float),
-			(colors == DYNAMIC_COLORING) ? s_vbo_color : colors);
-	
-	texture = (colors == DYNAMIC_COLORING) ? s_vbo_color : colors;
-      }
+      // Refresh colors
+      glBindBuffer(GL_ARRAY_BUFFER, s_vbocid);
+      glBufferSubData(GL_ARRAY_BUFFER, 0, s_vertices*3*sizeof(float),	s_vbo_color);
+      texture = s_vbo_color;
 #endif
       
       // Refresh vertices
@@ -550,8 +540,6 @@ void appKeyboard(unsigned char key, int x, int y)
     case '>' : translate_z += 0.1; true_redisplay = 1; glutPostRedisplay(); break;
     case 'r':
     case 'R': camera_rotate = 1 - camera_rotate; break;
-    case 's':
-    case 'S': SAND_MAX_HEIGHT = max_value; printf ("Setting MAX_HEIGHT to %d\n", max_value); break;
 #ifdef PIX_SURFACE
     case 'f':
     case 'F': flatten_surface = 1 - flatten_surface; break;
@@ -630,12 +618,10 @@ void appMotion(int x, int y)
   glutPostRedisplay();
 }
 
-void display_init (int argc, char **argv, unsigned dim, unsigned max_height,
-		   get_func_t get_func,
-		   compute_func_t compute_func)
+void display_init (int argc, char **argv, int dim,
+		   get_func_t get_func, compute_func_t compute_func)
 {
   SAND_DIM = dim;
-  SAND_MAX_HEIGHT = max_height;
   get_func_ptr = get_func;
   compute_func_ptr = compute_func;
   
