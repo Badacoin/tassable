@@ -9,7 +9,6 @@
 #define TIME_DIFF(t1, t2) \
     ((t2.tv_sec - t1.tv_sec) * 1000000 + (t2.tv_usec - t1.tv_usec))
 
-#define DIM 514
 #define FLAT_HEIGHT 5
 #define MAX_PLATFORMS (unsigned) 3
 #define MAX_DEVICES (unsigned) 5
@@ -19,6 +18,7 @@ typedef bool (*compute_func_t) (int iterations);
 
 void check (cl_int err, char *message);
 void flat_init (int **table, int height, int dim);
+void flat_init_center (int **table, int height, int dim, int empty);
 void tower_init (int **table, int height, int dim);
 int **table_alloc (int dim);
 void table_free (int **table);

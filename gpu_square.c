@@ -7,17 +7,19 @@
 #include <string.h>
 
 #define SIZE DIM - 2
-#define TILE DIM - 2
+#define TILE 16
+#define KERNEL "gpu_square"
+#define KERNEL_FILE "gpu_square_kernel.cl"
 
 int **matrix_table;
+int **init;
 int *table;
-int parity = 0;
 
-size_t global[2] = {SIZE, SIZE};
-size_t local[2]  = {TILE, 1}; 
+size_t global[2] = {SIZE - TILE, SIZE - TILE};
+size_t local[2]  = {TILE, TILE}; 
 
 cl_context context;
-cl_kernel absorb;
+cl_kernel kernel;
 cl_mem table_buffer;
 cl_mem dual_buffer;
 cl_command_queue queue;
@@ -33,6 +35,7 @@ static void alloc_buffers_and_user_data(cl_context context)
     cl_int err;
     matrix_table = table_alloc(DIM);
     table = matrix_table[0];
+    init = table_alloc(DIM);
 
     table_buffer = clCreateBuffer(context, CL_MEM_READ_WRITE,
 				  sizeof(int) * DIM * DIM, NULL, NULL);
@@ -56,6 +59,7 @@ static void alloc_buffers_and_user_data(cl_context context)
 static void free_buffers_and_user_data(void)
 {
     table_free(matrix_table);
+    table_free(init);
     clReleaseMemObject(table_buffer);
     clReleaseMemObject(dual_buffer);
 }
@@ -79,7 +83,7 @@ static void retrieve_output(cl_mem src)
 }
 
 bool
-absorb_gpu (int iterations)
+gpu_square (int iterations)
 {
     bool finished = true;
     send_input();
@@ -89,14 +93,21 @@ absorb_gpu (int iterations)
     src = table_buffer;
     dst = dual_buffer;
     cl_int err;
+
+    #pragma omp parallel for
+    for (int i = 0 ; i < DIM - 1 ; i++) {
+	for (int j = 0 ; j < DIM - 1 ; j++) {
+	    init[i][j] = matrix_table[i][j];
+	}
+    }
     
     for (int k = 0 ; k < iterations; k++) {
 	err = 0;
-	err  = clSetKernelArg(absorb, 0, sizeof(cl_mem), &src);
-	err |= clSetKernelArg(absorb, 1, sizeof(cl_mem), &dst);
+	err  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &src);
+	err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &dst);
 	check(err, "Failed to set kernel arguments");
 	
-	err = clEnqueueNDRangeKernel(queue, absorb, 2, NULL,
+	err = clEnqueueNDRangeKernel(queue, kernel, 2, NULL,
 				     global, local, 0, NULL, NULL);
 	check(err, "Failed to execute kernel");
 	clFinish(queue);
@@ -107,6 +118,13 @@ absorb_gpu (int iterations)
     }
 
     retrieve_output(src);
+    #pragma omp parallel reduction(&&:finished)
+    for (int i = 1 ; finished && i < DIM - 1 ; i++) {	
+	for (int j = 1 ; finished && j < DIM - 1 ; j++) {
+	    finished = finished && (matrix_table[i][j] == init[i][j]);
+	}
+    }
+    
     return finished;
 }
 
@@ -118,7 +136,7 @@ main (int argc, char **argv)
     int tower_height = 0;
     int iterations = 1;
     int optc;
-    compute_func_t func = absorb_gpu;
+    compute_func_t func = gpu_square;
     
     while ((optc = getopt(argc, argv, "t:i:gc")) != -1) {
 	switch (optc) {
@@ -181,16 +199,15 @@ main (int argc, char **argv)
     const char	*opencl_prog;
 
     char flags[1024];
-    sprintf(flags,
-	     "-cl-mad-enable -DSIZE=%d -DTILE=%d, -DDIM=%d", SIZE, TILE, DIM);
+    sprintf(flags, "-DSIZE=%d -DTILE=%d -DDIM=%d", SIZE, TILE, DIM);
 
-    opencl_prog = file_load("absorb.cl");
+    opencl_prog = file_load(KERNEL_FILE);
     program = clCreateProgramWithSource(context, 1, &opencl_prog,
 					NULL, &err);
     check(err, "Failed to create program");
     compile(program, devices[gpu_device], flags);
 
-    absorb = clCreateKernel(program, "absorb", &err);
+    kernel = clCreateKernel(program, KERNEL, &err);
     check(err, "Failed to create kernel");
 
     queue = clCreateCommandQueue(context, devices[gpu_device],
@@ -202,7 +219,7 @@ main (int argc, char **argv)
 	tower_init(matrix_table, tower_height, DIM);
     }
     else {
-	flat_init(matrix_table, FLAT_HEIGHT, DIM);
+	flat_init_center(matrix_table, FLAT_HEIGHT, DIM, TILE / 2);
     }
     
     if (graphical) {
@@ -219,7 +236,7 @@ main (int argc, char **argv)
 	    tower_init(control, tower_height, DIM);
 	}
 	else {
-	    flat_init(control, FLAT_HEIGHT, DIM);
+	    flat_init_center(control, FLAT_HEIGHT, DIM, TILE / 2);
 	}
 
 	process(control, DIM);
@@ -228,7 +245,7 @@ main (int argc, char **argv)
     }
 
     free_buffers_and_user_data();
-    clReleaseKernel(absorb);
+    clReleaseKernel(kernel);
     clReleaseProgram(program);
     clReleaseContext(context);
     clReleaseCommandQueue(queue);

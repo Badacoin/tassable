@@ -50,6 +50,7 @@ absorb_openmp (int iterations)
 	parity++;
     }
 
+    #pragma omp parallel reduction(&&:finished)
     for (int i = 1 ; finished && i < DIM - 1 ; i++) {	
 	for (int j = 1 ; finished && j < DIM - 1 ; j++) {
 	    finished = finished && (src[i][j] == init[i][j]);

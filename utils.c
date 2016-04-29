@@ -16,8 +16,8 @@ check (cl_int err, char *message)
 void
 flat_init (int **table, int height, int dim)
 {
-    for (int i = 1; i < dim - 1 ; i++) {
-	for (int j = 1; j < dim - 1 ; j++) {
+    for (int i = 1 ; i < dim - 1 ; i++) {
+	for (int j = 1 ; j < dim - 1 ; j++) {
 	    table[i][j] = height;
 	}
     }
@@ -26,6 +26,22 @@ flat_init (int **table, int height, int dim)
 	table[dim-1][i] = 0;
 	table[i][0] = 0;
 	table[i][dim-1] = 0;
+    }
+}
+
+void
+flat_init_center (int **table, int height, int dim, int empty)
+{
+    for (int i = 0 ; i < dim ; i++) {
+	for (int j = 0 ; j < dim ; j++) {
+	    table[i][j] = 0;
+	}
+    }
+    
+    for (int i = empty ; i < dim - empty ; i++) {
+	for (int j = empty ; j < dim - empty ; j++) {
+	    table[i][j] = height;
+	}
     }
 }
 

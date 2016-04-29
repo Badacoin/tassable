@@ -1,4 +1,4 @@
-__kernel void absorb (__global int *src, __global int *dst)
+__kernel void gpu (__global int *src, __global int *dst)
 {
     int col = get_global_id(0) + 1;
     int row = get_global_id(1) + 1;
