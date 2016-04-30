@@ -32,7 +32,7 @@ absorb_openmp (int iterations)
     }
     
     for (int k = 0 ; k < iterations; k++) {
-	#pragma omp parallel for
+    #pragma omp parallel for
 	for (int i = 1 ; i < DIM - 1 ; i++) {
 	    for (int j = 1 ; j < DIM - 1 ; j++) {
 		int left = src[i][j-1] / 4;
@@ -50,10 +50,9 @@ absorb_openmp (int iterations)
 	parity++;
     }
 
-    #pragma omp parallel reduction(&&:finished)
     for (int i = 1 ; finished && i < DIM - 1 ; i++) {	
 	for (int j = 1 ; finished && j < DIM - 1 ; j++) {
-	    finished = finished && (src[i][j] == init[i][j]);
+	    finished = finished & (src[i][j] == init[i][j]);
 	}
     }
     

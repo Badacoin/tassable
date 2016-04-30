@@ -18,6 +18,7 @@ typedef bool (*compute_func_t) (int iterations);
 
 void check (cl_int err, char *message);
 void flat_init (int **table, int height, int dim);
+void numa_flat_init (int **table, int height, int dim);
 void flat_init_center (int **table, int height, int dim, int empty);
 void tower_init (int **table, int height, int dim);
 int **table_alloc (int dim);

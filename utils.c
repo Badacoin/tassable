@@ -30,6 +30,23 @@ flat_init (int **table, int height, int dim)
 }
 
 void
+numa_flat_init (int **table, int height, int dim)
+{
+    #pragma omp parallel for schedule(runtime)
+    for (int i = 1 ; i < dim - 1 ; i++) {
+	for (int j = 1 ; j < dim - 1 ; j++) {
+	    table[i][j] = height;
+	}
+    }
+    for (int i = 0 ; i < dim ; i++) {
+	table[0][i] = 0;
+	table[dim-1][i] = 0;
+	table[i][0] = 0;
+	table[i][dim-1] = 0;
+    }
+}
+
+void
 flat_init_center (int **table, int height, int dim, int empty)
 {
     for (int i = 0 ; i < dim ; i++) {

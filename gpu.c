@@ -48,13 +48,14 @@ static void alloc_buffers_and_user_data(cl_context context)
 				  sizeof(int) * DIM * DIM, NULL, NULL);
     if (!dual_buffer) {
 	printf("Failed to allocate input buffer A");
-    }
+    }    
 
-    int zero = 0;
-    err = clEnqueueFillBuffer(queue, dual_buffer, &zero, sizeof(int),
-			      0, sizeof(int) * DIM * DIM, 0, NULL, NULL);
+    int zero[DIM * DIM] = {0};
+    err = clEnqueueWriteBuffer(queue, dual_buffer, CL_TRUE, 0,
+			       sizeof(int) * DIM * DIM,
+			       zero, 0, NULL, NULL);
     check(err, "Failed to initialize buffer");
-    
+
 }
 
 static void free_buffers_and_user_data(void)
@@ -119,10 +120,10 @@ gpu (int iterations)
     }
 
     retrieve_output(src);
-    #pragma omp parallel reduction(&&:finished)
+    
     for (int i = 1 ; finished && i < DIM - 1 ; i++) {	
 	for (int j = 1 ; finished && j < DIM - 1 ; j++) {
-	    finished = finished && (matrix_table[i][j] == init[i][j]);
+	    finished = finished & (matrix_table[i][j] == init[i][j]);
 	}
     }
     
@@ -192,7 +193,7 @@ main (int argc, char **argv)
 
     err = clGetDeviceIDs(pf[gpu_platform], device_type, MAX_DEVICES,
 			 devices, &nb_devices);
-    check(err, "Failed to get Device Info");
+    check(err, "Failed to get Device Info");    
 
     context = clCreateContext (0, nb_devices, devices, NULL, NULL, &err);
     check(err, "Failed to create compute context");

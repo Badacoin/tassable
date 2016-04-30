@@ -6,6 +6,8 @@
 #include <stdlib.h>
 
 int **table;
+int **temp;
+int offset = DIM / 2;
 
 int
 get (int i, int j)
@@ -14,25 +16,43 @@ get (int i, int j)
 }
 
 bool
-naive (int iterations)
+outward_naive_sync (int iterations)
 {
     bool finished = true;
-    
+
     for (int k = 0 ; k < iterations ; k++) {
-	for (int i = 1 ; i < DIM - 1 ; i++) {	
-	    for (int j = 1 ; j < DIM - 1 ; j++) {
+	
+	for (int i = offset - 1 ; i < DIM - offset + 1 ; i++) {	
+	    for (int j = offset - 1 ; j < DIM - offset + 1 ; j++) {
+		temp[i][j] = 0;
+	    }
+	}
+	
+	for (int i = offset ; i < DIM - offset ; i++) {	
+	    for (int j = offset ; j < DIM - offset ; j++) {
 		if (table[i][j] >= 4) {
 		    finished = false;
 		    int mod4 = table[i][j] % 4;      
 		    int div4 = table[i][j] / 4;
-		    table[i][j] = mod4;   
-		    table[i-1][j] += div4;   
-		    table[i+1][j] += div4;   
-		    table[i][j-1] += div4;   
-		    table[i][j+1] += div4;   
+		    temp[i][j] -= table[i][j] - mod4;   
+		    temp[i-1][j] += div4;   
+		    temp[i+1][j] += div4;   
+		    temp[i][j-1] += div4;   
+		    temp[i][j+1] += div4;   
 		}
 	    }
 	}
+	
+	for (int i = offset - 1 ; i < DIM - offset + 1 ; i++) {	
+	    for (int j = offset - 1 ; j < DIM - offset + 1 ; j++) {
+		table[i][j] += temp[i][j];
+	    }
+	}
+    }
+
+    if (finished && (offset > 1)) {
+	finished = false;
+	offset--;
     }
     return finished;
 }
@@ -45,7 +65,7 @@ main (int argc, char **argv)
     int tower_height = 0;
     int iterations = 1;
     int optc;
-    compute_func_t func = naive;
+    compute_func_t func = outward_naive_sync;
     
     while ((optc = getopt(argc, argv, "t:i:gc")) != -1) {
 	switch (optc) {
@@ -65,6 +85,7 @@ main (int argc, char **argv)
     }
 
     table = table_alloc(DIM);
+    temp = table_alloc(DIM);
     
     if (tower_height != 0) {
 	tower_init(table, tower_height, DIM);
@@ -96,5 +117,6 @@ main (int argc, char **argv)
     }
 
     table_free(table);
+    table_free(temp);
     return 0;
 }

@@ -6,34 +6,56 @@
 #include <stdlib.h>
 
 int **table;
+int **dual;
+int **init;
+int parity = 0;
 
 int
 get (int i, int j)
 {
-    return table[i][j];
+    return (parity % 2) ? dual[i][j] : table[i][j];
 }
 
 bool
-naive (int iterations)
+numa_runtime_absorb_openmp (int iterations)
 {
     bool finished = true;
-    
-    for (int k = 0 ; k < iterations ; k++) {
-	for (int i = 1 ; i < DIM - 1 ; i++) {	
-	    for (int j = 1 ; j < DIM - 1 ; j++) {
-		if (table[i][j] >= 4) {
-		    finished = false;
-		    int mod4 = table[i][j] % 4;      
-		    int div4 = table[i][j] / 4;
-		    table[i][j] = mod4;   
-		    table[i-1][j] += div4;   
-		    table[i+1][j] += div4;   
-		    table[i][j-1] += div4;   
-		    table[i][j+1] += div4;   
-		}
-	    }
+    int **src, **dst, **temp;
+    src = (parity % 2) ? dual : table;
+    dst = (parity % 2) ? table : dual;
+
+    #pragma omp parallel for schedule(runtime)
+    for (int i = 0 ; i < DIM - 1 ; i++) {
+	for (int j = 0 ; j < DIM - 1 ; j++) {
+	    init[i][j] = src[i][j];
 	}
     }
+    
+    for (int k = 0 ; k < iterations; k++) {
+    #pragma omp parallel for schedule(runtime)
+	for (int i = 1 ; i < DIM - 1 ; i++) {
+	    for (int j = 1 ; j < DIM - 1 ; j++) {
+		int left = src[i][j-1] / 4;
+		int middle = src[i][j] % 4;
+		int right = src[i][j+1] / 4;
+		int up = src[i-1][j] / 4;
+		int down = src[i+1][j] /4;
+		dst[i][j] = left + middle + right + up + down;
+	    }
+	}
+	
+	temp = dst;
+	dst = src;
+	src = temp;
+	parity++;
+    }
+
+    for (int i = 1 ; finished && i < DIM - 1 ; i++) {	
+	for (int j = 1 ; finished && j < DIM - 1 ; j++) {
+	    finished = finished & (src[i][j] == init[i][j]);
+	}
+    }
+    
     return finished;
 }
 
@@ -45,7 +67,7 @@ main (int argc, char **argv)
     int tower_height = 0;
     int iterations = 1;
     int optc;
-    compute_func_t func = naive;
+    compute_func_t func = numa_runtime_absorb_openmp;
     
     while ((optc = getopt(argc, argv, "t:i:gc")) != -1) {
 	switch (optc) {
@@ -65,12 +87,15 @@ main (int argc, char **argv)
     }
 
     table = table_alloc(DIM);
+    dual = table_alloc(DIM);
+    init = table_alloc(DIM);
+    numa_flat_init(dual, 0, DIM);
     
     if (tower_height != 0) {
 	tower_init(table, tower_height, DIM);
     }
     else {
-	flat_init(table, FLAT_HEIGHT, DIM);
+	numa_flat_init(table, FLAT_HEIGHT, DIM);
     }
 
     if (graphical) {
@@ -96,5 +121,7 @@ main (int argc, char **argv)
     }
 
     table_free(table);
+    table_free(dual);
+    table_free(init);
     return 0;
 }
