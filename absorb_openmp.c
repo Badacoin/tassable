@@ -65,7 +65,7 @@ main (int argc, char **argv)
     bool graphical = false;
     bool validation = false;
     int tower_height = 0;
-    int iterations = 1;
+    int iterations = 1000;
     int optc;
     compute_func_t func = absorb_openmp;
     

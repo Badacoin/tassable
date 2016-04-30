@@ -7,7 +7,7 @@
 
 int **table;
 int **temp;
-int offset = DIM / 2;
+int offset = DIM / 2 - 1;
 
 int
 get (int i, int j)
@@ -18,10 +18,10 @@ get (int i, int j)
 bool
 outward_naive_sync (int iterations)
 {
-    bool finished = true;
+    bool finished = false;
 
-    for (int k = 0 ; k < iterations ; k++) {
-	
+    for (int k = 0 ; !finished && k < iterations ; k++) {
+	finished = true;
 	for (int i = offset - 1 ; i < DIM - offset + 1 ; i++) {	
 	    for (int j = offset - 1 ; j < DIM - offset + 1 ; j++) {
 		temp[i][j] = 0;
@@ -63,7 +63,7 @@ main (int argc, char **argv)
     bool graphical = false;
     bool validation = false;
     int tower_height = 0;
-    int iterations = 1;
+    int iterations = 1000;
     int optc;
     compute_func_t func = outward_naive_sync;
     

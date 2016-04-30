@@ -6,17 +6,21 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define SIZE DIM - 2
-#define TILE 16
-#define KERNEL "gpu_square"
-#define KERNEL_FILE "gpu_square_kernel.cl"
+#define TILE DIM - 2
+#define TILE2 1
+#define KERNEL "gpu_overlap"
+#define KERNEL_FILE "gpu_overlap_kernel.cl"
 
 int **matrix_table;
 int **init;
 int *table;
+unsigned border = 1;
+unsigned tile = 63;
+unsigned tile2 = 2;
 
-size_t global[2] = {SIZE - TILE, SIZE - TILE};
-size_t local[2]  = {TILE, TILE}; 
+unsigned true_dim;
+size_t global[2];
+size_t local[2]; 
 
 cl_context context;
 cl_kernel kernel;
@@ -47,13 +51,14 @@ static void alloc_buffers_and_user_data(cl_context context)
 				  sizeof(int) * DIM * DIM, NULL, NULL);
     if (!dual_buffer) {
 	printf("Failed to allocate input buffer A");
-    }
+    }    
 
-    int zero = 0;
-    err = clEnqueueFillBuffer(queue, dual_buffer, &zero, sizeof(int),
-			      0, sizeof(int) * DIM * DIM, 0, NULL, NULL);
+    int zero[DIM * DIM] = {0};
+    err = clEnqueueWriteBuffer(queue, dual_buffer, CL_TRUE, 0,
+			       sizeof(int) * DIM * DIM,
+			       zero, 0, NULL, NULL);
     check(err, "Failed to initialize buffer");
-    
+
 }
 
 static void free_buffers_and_user_data(void)
@@ -78,12 +83,12 @@ static void retrieve_output(cl_mem src)
     cl_int err;
     err = clEnqueueReadBuffer(queue, src, CL_TRUE, 0,
 			      sizeof(int) * DIM * DIM,
-			      table, 0, NULL, NULL);  
+			      table, 0, NULL, NULL);
     check(err, "Failed to transfer output");
 }
 
 bool
-gpu_square (int iterations)
+gpu_overlap (int iterations)
 {
     bool finished = true;
     send_input();
@@ -118,10 +123,10 @@ gpu_square (int iterations)
     }
 
     retrieve_output(src);
-    #pragma omp parallel reduction(&&:finished)
+    
     for (int i = 1 ; finished && i < DIM - 1 ; i++) {	
 	for (int j = 1 ; finished && j < DIM - 1 ; j++) {
-	    finished = finished && (matrix_table[i][j] == init[i][j]);
+	    finished = finished & (matrix_table[i][j] == init[i][j]);
 	}
     }
     
@@ -134,11 +139,11 @@ main (int argc, char **argv)
     bool graphical = false;
     bool validation = false;
     int tower_height = 0;
-    int iterations = 1;
+    int iterations = 500;
     int optc;
-    compute_func_t func = gpu_square;
+    compute_func_t func = gpu_overlap;
     
-    while ((optc = getopt(argc, argv, "t:i:gc")) != -1) {
+    while ((optc = getopt(argc, argv, "t:i:gcb:l:h:")) != -1) {
 	switch (optc) {
 	    case 't' :
 	        tower_height = strtol(optarg, NULL, 10);
@@ -152,9 +157,24 @@ main (int argc, char **argv)
 	    case 'c' :
 		validation = true;
 		break;
+	    case 'b' :
+	        border = strtol(optarg, NULL, 10);
+	        break;
+	    case 'l' :
+	        tile = strtol(optarg, NULL, 10);
+	        break;
+	    case 'h' :
+	        tile2 = strtol(optarg, NULL, 10);
+	        break;
 	}
     }   
 
+    true_dim = DIM - 2 * border;
+    global[0] = (tile + 2 * border) * true_dim / tile;
+    global[1] = (tile2 + 2 * border) * true_dim / tile2;
+    local[0] = tile + 2 * border;
+    local[1] =  tile2 + 2 * border;
+    
     cl_platform_id pf[MAX_PLATFORMS];
     cl_uint nb_platforms = 0;
     cl_int err;
@@ -191,7 +211,7 @@ main (int argc, char **argv)
 
     err = clGetDeviceIDs(pf[gpu_platform], device_type, MAX_DEVICES,
 			 devices, &nb_devices);
-    check(err, "Failed to get Device Info");
+    check(err, "Failed to get Device Info");    
 
     context = clCreateContext (0, nb_devices, devices, NULL, NULL, &err);
     check(err, "Failed to create compute context");
@@ -199,7 +219,8 @@ main (int argc, char **argv)
     const char	*opencl_prog;
 
     char flags[1024];
-    sprintf(flags, "-DSIZE=%d -DTILE=%d -DDIM=%d", SIZE, TILE, DIM);
+    sprintf(flags, "-DDIM=%d -DTILE=%d -DTILE2=%d -DBORDER=%d",
+	    DIM, tile, tile2, border);
 
     opencl_prog = file_load(KERNEL_FILE);
     program = clCreateProgramWithSource(context, 1, &opencl_prog,
@@ -219,7 +240,7 @@ main (int argc, char **argv)
 	tower_init(matrix_table, tower_height, DIM);
     }
     else {
-	flat_init_center(matrix_table, FLAT_HEIGHT, DIM, TILE / 2);
+	flat_init_center(matrix_table, FLAT_HEIGHT, DIM, border);
     }
     
     if (graphical) {
@@ -236,7 +257,7 @@ main (int argc, char **argv)
 	    tower_init(control, tower_height, DIM);
 	}
 	else {
-	    flat_init_center(control, FLAT_HEIGHT, DIM, TILE / 2);
+	    flat_init(control, FLAT_HEIGHT, DIM);
 	}
 
 	process(control, DIM);
