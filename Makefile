@@ -3,7 +3,7 @@ DIM?=128
 PROG	:= naive naive_sync absorb task_seq runtime_absorb_openmp \
 	absorb_openmp gpu numa_runtime_absorb_openmp \
 	naive_openmp outward_naive_sync gpu_overlap
-CFLAGS	:= -g -O3 -std=c99 -Wall -Wextra -DDIM=$(DIM)
+CFLAGS	:= -g -O3 -std=c99 -Wall -Wextra -DDIM=$(DIM) -fopenmp
 LDLIBS	:= -lm -fopenmp -lOpenCL -lGL -lGLU -lglut
 
 all: $(PROG)

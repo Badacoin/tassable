@@ -123,7 +123,30 @@ run (compute_func_t compute_func, unsigned iterations)
 	call_counter++;
     }
 
-    printf("%d function calls\n", call_counter);
+    printf("%d iterations\n", call_counter * iterations);
+    printf("time per iteration : %.3f ms\n",
+	   computeTime / (float) (1000 * call_counter * iterations));
+    printf("total time : %.3f s\n",
+	   computeTime / (float) (1000 * 1000));
+}
+
+void
+run_border (compute_func_t compute_func,
+	    unsigned border, unsigned iterations)
+{
+    bool finished = false;
+    int computeTime = 0;
+    unsigned call_counter = 0;
+    while (!finished) {
+	struct timeval t1,t2;
+	gettimeofday (&t1,NULL);
+	finished = compute_func(iterations);
+	gettimeofday (&t2,NULL);
+	computeTime += TIME_DIFF(t1,t2);
+	call_counter++;
+    }
+
+    printf("%d iterations\n", call_counter * iterations * border);
     printf("time per iteration : %.3f ms\n",
 	   computeTime / (float) (1000 * call_counter * iterations));
     printf("total time : %.3f s\n",
@@ -229,6 +252,6 @@ compile (cl_program program, cl_device_id device, char *flags)
 	fprintf(stderr, "%s\n", buffer);
 	fprintf(stderr, "--------------------\n");
 	
-	error("Failed to build program!\n");
+        printf("Failed to build program!\n");
     }
 }

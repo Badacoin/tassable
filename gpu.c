@@ -7,17 +7,17 @@
 #include <string.h>
 
 #define SIZE DIM - 2
-#define TILE DIM - 2
-#define TILE2 1
 #define KERNEL "gpu"
 #define KERNEL_FILE "gpu_kernel.cl"
 
 int **matrix_table;
 int **init;
 int *table;
+unsigned tile = 1;
+unsigned tile2 = SIZE;
 
 size_t global[2] = {SIZE, SIZE};
-size_t local[2]  = {TILE, TILE2}; 
+size_t local[2];
 
 cl_context context;
 cl_kernel kernel;
@@ -140,7 +140,7 @@ main (int argc, char **argv)
     int optc;
     compute_func_t func = gpu;
     
-    while ((optc = getopt(argc, argv, "t:i:gc")) != -1) {
+    while ((optc = getopt(argc, argv, "t:i:gcl:h:")) != -1) {
 	switch (optc) {
 	    case 't' :
 	        tower_height = strtol(optarg, NULL, 10);
@@ -154,9 +154,18 @@ main (int argc, char **argv)
 	    case 'c' :
 		validation = true;
 		break;
+	    case 'l' :
+	        tile = strtol(optarg, NULL, 10);
+	        break;
+	    case 'h' :
+	        tile2 = strtol(optarg, NULL, 10);
+	        break;
 	}
     }   
 
+    local[0] = tile;
+    local[1] = tile2;
+    
     cl_platform_id pf[MAX_PLATFORMS];
     cl_uint nb_platforms = 0;
     cl_int err;

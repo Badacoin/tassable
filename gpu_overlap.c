@@ -6,8 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TILE DIM - 2
-#define TILE2 1
 #define KERNEL "gpu_overlap"
 #define KERNEL_FILE "gpu_overlap_kernel.cl"
 
@@ -15,7 +13,7 @@ int **matrix_table;
 int **init;
 int *table;
 unsigned border = 1;
-unsigned tile = 63;
+unsigned tile = 2;
 unsigned tile2 = 2;
 
 unsigned true_dim;
@@ -247,7 +245,7 @@ main (int argc, char **argv)
 	display_init (0, NULL, DIM, get, func);
     }
     else {
-	run(func, iterations);
+	run_border(func, iterations, border);
     }
 
     if (validation) {

@@ -24,6 +24,8 @@ void tower_init (int **table, int height, int dim);
 int **table_alloc (int dim);
 void table_free (int **table);
 void run (compute_func_t compute_func, unsigned iterations);
+void run_border (compute_func_t compute_func,
+		 unsigned border, unsigned iterations);
 void process (int **control, int dim);
 void compare (int **table, int **control, int dim);
 
