@@ -13,8 +13,8 @@
 int **matrix_table;
 int **init;
 int *table;
-unsigned tile = 1;
-unsigned tile2 = SIZE;
+unsigned tile = SIZE;
+unsigned tile2 = 1;
 
 size_t global[2] = {SIZE, SIZE};
 size_t local[2];

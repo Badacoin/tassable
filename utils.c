@@ -132,7 +132,7 @@ run (compute_func_t compute_func, unsigned iterations)
 
 void
 run_border (compute_func_t compute_func,
-	    unsigned border, unsigned iterations)
+	    unsigned iterations, unsigned border)
 {
     bool finished = false;
     int computeTime = 0;
@@ -148,7 +148,8 @@ run_border (compute_func_t compute_func,
 
     printf("%d iterations\n", call_counter * iterations * border);
     printf("time per iteration : %.3f ms\n",
-	   computeTime / (float) (1000 * call_counter * iterations));
+	   computeTime / (float) (1000 *call_counter *
+				  iterations * border));
     printf("total time : %.3f s\n",
 	   computeTime / (float) (1000 * 1000));
 }
